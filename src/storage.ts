@@ -1,8 +1,9 @@
-import type { ActivityLogItem, CustomCategory, Expense, IncomeEntry, ThemeMode } from './types'
+import type { ActivityLogItem, BuyEntry, CustomCategory, Expense, IncomeEntry, ThemeMode } from './types'
 
 const THEME_KEY = 'expendfy_theme'
 
 const EXPENSES_KEY = 'expendfy_expenses'
+const BUYS_KEY = 'expendfy_buys'
 const INCOME_KEY = 'expendfy_income'
 const ACTIVITY_LOG_KEY = 'expendfy_activity_log'
 const CUSTOM_EXPENSE_CATEGORIES_KEY = 'expendfy_custom_expense_categories'
@@ -25,6 +26,21 @@ export function loadExpenses(): Expense[] {
 
 export function saveExpenses(expenses: Expense[]): void {
   localStorage.setItem(EXPENSES_KEY, JSON.stringify(expenses))
+}
+
+export function loadBuys(): BuyEntry[] {
+  try {
+    const raw = localStorage.getItem(BUYS_KEY)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as unknown
+    return Array.isArray(parsed) ? (parsed as BuyEntry[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveBuys(buys: BuyEntry[]): void {
+  localStorage.setItem(BUYS_KEY, JSON.stringify(buys))
 }
 
 export function loadIncome(): IncomeEntry[] {

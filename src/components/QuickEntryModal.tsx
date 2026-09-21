@@ -22,7 +22,7 @@ import { CSS } from '@dnd-kit/utilities'
 import { ChevronDown, History, Minus, Pencil, Plus, Redo2, RotateCcw, Tag, Trash2, TriangleAlert, Undo2, X } from 'lucide-react'
 import { formatDateTime, formatDisplayDate, formatMonthDay, getBackdatedClass, getEntryTargetDate, isWithin24Hours, toISODate, splitFormattedDateTime, extractDateOnly } from '../dateUtils'
 import { getNetworkTodayIso } from '../networkTime'
-import type { ActivityLogItem, CustomCategory, Expense, IncomeEntry } from '../types'
+import type { ActivityLogItem, BuyEntry, CustomCategory, Expense, IncomeEntry } from '../types'
 import {
   EXPENSE_CATEGORIES,
   INCOME_CATEGORIES,
@@ -47,6 +47,7 @@ type Props = {
   currency: string
   currencyOptions: readonly string[]
   expensesForDate: Expense[]
+  buysForDate: BuyEntry[]
   incomeForMonth: IncomeEntry[]
   activityLog?: ActivityLogItem[]
   customExpenseCategories?: CustomCategory[]
@@ -61,6 +62,9 @@ type Props = {
   onAddExpense: (description: string, amount: number) => void
   onUpdateExpense: (id: string, description: string, amount: number) => void
   onDeleteExpense: (id: string) => void
+  onAddBuy: (description: string, amount: number) => void
+  onUpdateBuy: (id: string, description: string, amount: number) => void
+  onDeleteBuy: (id: string) => void
   onAddIncome: (description: string, amount: number) => void
   onUpdateIncome: (id: string, description: string, amount: number) => void
   onDeleteIncome: (id: string) => void
@@ -989,6 +993,7 @@ export function QuickEntryModal({
   currency: _currency,
   currencyOptions: _currencyOptions,
   expensesForDate,
+  buysForDate,
   incomeForMonth,
   activityLog = [],
   customExpenseCategories = [],
@@ -1003,6 +1008,9 @@ export function QuickEntryModal({
   onAddExpense,
   onUpdateExpense,
   onDeleteExpense,
+  onAddBuy,
+  onUpdateBuy,
+  onDeleteBuy,
   onAddIncome,
   onUpdateIncome,
   onDeleteIncome,
@@ -1017,11 +1025,15 @@ export function QuickEntryModal({
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseAmountError, setExpenseAmountError] = useState(false)
+  const [buyDesc, setBuyDesc] = useState('')
+  const [buyAmount, setBuyAmount] = useState('')
+  const [buyAmountError, setBuyAmountError] = useState(false)
   const [incomeDesc, setIncomeDesc] = useState('')
   const [incomeAmount, setIncomeAmount] = useState('')
   const [incomeAmountError, setIncomeAmountError] = useState(false)
-  const [openPanel, setOpenPanel] = useState<'expense' | 'income' | 'currency' | null>(null)
+  const [openPanel, setOpenPanel] = useState<'expense' | 'buy' | 'income' | 'currency' | null>(null)
   const [editingExpenseId, setEditingExpenseId] = useState<string | null>(null)
+  const [editingBuyId, setEditingBuyId] = useState<string | null>(null)
   const [editingIncomeId, setEditingIncomeId] = useState<string | null>(null)
   const [editCategory, setEditCategory] = useState<Category | null>(null)
   const [editDesc, setEditDesc] = useState('')
@@ -1034,7 +1046,7 @@ export function QuickEntryModal({
   const [activitySheetOpen, setActivitySheetOpen] = useState(false)
   const [viewingHistory, setViewingHistory] = useState<{
     entry: Expense | IncomeEntry
-    side: 'expense' | 'income'
+    side: 'expense' | 'income' | 'buy'
   } | null>(null)
   const [catPickerTarget, setCatPickerTarget] = useState<'add' | 'edit'>('add')
 
@@ -1110,6 +1122,18 @@ export function QuickEntryModal({
     setSelectedCategory(null)
   }
 
+  function addBuy(): void {
+    const n = parseFloat(buyAmount.replace(',', '.'))
+    if (Number.isNaN(n) || n <= 0) {
+      setBuyAmountError(true)
+      return
+    }
+    onAddBuy(buyDesc.trim(), n)
+    setBuyDesc('')
+    setBuyAmount('')
+    setBuyAmountError(false)
+  }
+
   function addIncome(): void {
     const n = parseFloat(incomeAmount.replace(',', '.'))
     if (Number.isNaN(n) || n <= 0) {
@@ -1124,7 +1148,7 @@ export function QuickEntryModal({
     setSelectedIncomeCategory(null)
   }
 
-  function togglePanel(panel: 'expense' | 'income' | 'currency'): void {
+  function togglePanel(panel: 'expense' | 'buy' | 'income' | 'currency'): void {
     setOpenPanel((prev) => (prev === panel ? null : panel))
   }
 
@@ -1135,6 +1159,7 @@ export function QuickEntryModal({
     }
     setExpiredWarning(null)
     setEditingExpenseId(item.id)
+    setEditingBuyId(null)
     setEditingIncomeId(null)
     const { category, note } = parseEntryCategory(item.description, mergedExpenseCategories)
     setEditCategory(category)
@@ -1169,6 +1194,44 @@ export function QuickEntryModal({
     setEditAmountError(false)
   }
 
+  function startEditBuy(item: BuyEntry): void {
+    if (!isWithin24Hours(item.createdAt)) {
+      setExpiredWarning({ id: item.id, action: 'edit' })
+      return
+    }
+    setExpiredWarning(null)
+    setEditingBuyId(item.id)
+    setEditingExpenseId(null)
+    setEditingIncomeId(null)
+    setEditCategory(null)
+    setEditDesc(item.description)
+    setEditAmount(String(item.amount))
+    setEditAmountError(false)
+  }
+
+  function handleDeleteBuy(item: BuyEntry): void {
+    if (!isWithin24Hours(item.createdAt)) {
+      setExpiredWarning({ id: item.id, action: 'delete' })
+      return
+    }
+    setExpiredWarning(null)
+    onDeleteBuy(item.id)
+  }
+
+  function saveBuyEdit(): void {
+    if (!editingBuyId) return
+    const n = parseFloat(editAmount.replace(',', '.'))
+    if (Number.isNaN(n) || n <= 0) {
+      setEditAmountError(true)
+      return
+    }
+    onUpdateBuy(editingBuyId, editDesc.trim(), n)
+    setEditingBuyId(null)
+    setEditDesc('')
+    setEditAmount('')
+    setEditAmountError(false)
+  }
+
   function startEditIncome(item: IncomeEntry): void {
     if (!isWithin24Hours(item.createdAt)) {
       setExpiredWarning({ id: item.id, action: 'edit' })
@@ -1177,6 +1240,7 @@ export function QuickEntryModal({
     setExpiredWarning(null)
     setEditingIncomeId(item.id)
     setEditingExpenseId(null)
+    setEditingBuyId(null)
     const { category, note } = parseEntryCategory(item.description, mergedIncomeCategories)
     setEditCategory(category)
     setEditDesc(note)
@@ -1212,6 +1276,7 @@ export function QuickEntryModal({
 
   function cancelEdit(): void {
     setEditingExpenseId(null)
+    setEditingBuyId(null)
     setEditingIncomeId(null)
     setEditCategory(null)
     setEditDesc('')
@@ -1298,6 +1363,7 @@ export function QuickEntryModal({
 
   // ── Live value previews derived from existing props ──
   const expenseDayTotal = expensesForDate.reduce((s, e) => s + e.amount, 0)
+  const buyDayTotal = buysForDate.reduce((s, e) => s + e.amount, 0)
   const incomeMonthTotal = incomeForMonth.reduce((s, e) => s + e.amount, 0)
 
   // Future dates are read-only for expenses
@@ -1584,6 +1650,211 @@ export function QuickEntryModal({
                                     Edit
                                   </button>
                                   <button type="button" className="btn btn--danger" onClick={() => handleDeleteExpense(e)}>
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                              {expiredWarning?.id === e.id && (
+                                <div className="qm-item__expired-warning" role="alert">
+                                  <TriangleAlert size={13} strokeWidth={2.4} />
+                                  <span>
+                                    {expiredWarning.action === 'delete'
+                                      ? 'Deletion window expired — entries can only be deleted within 24 hours.'
+                                      : 'Editing window expired — entries can only be edited within 24 hours.'}
+                                  </span>
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </li>
+                      ))
+                  )}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* ── Buy section ── */}
+        <section className="quick-modal__section">
+          <button
+            type="button"
+            className={`quick-modal__trigger quick-modal__trigger--row ${openPanel === 'buy' ? 'quick-modal__trigger--open' : ''}`}
+            onClick={() => togglePanel('buy')}
+          >
+            {/* Icon badge — amber tint */}
+            <span className="qm-row__badge qm-row__badge--buy" aria-hidden>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/>
+              </svg>
+            </span>
+            {/* Label + sub-label */}
+            <span className="qm-row__body">
+              <span className="qm-row__label">Buy</span>
+              <span className="qm-row__sub">Selected date</span>
+            </span>
+            {/* Live value + chevron */}
+            <span className="qm-row__right">
+              <span className="qm-row__value qm-row__value--buy">
+                {buyDayTotal > 0 ? formatMoney(buyDayTotal) : '—'}
+              </span>
+              <span className={`quick-modal__chev ${openPanel === 'buy' ? 'quick-modal__chev--open' : ''}`}>›</span>
+            </span>
+          </button>
+          <div className="quick-modal__collapse" data-open={openPanel === 'buy'}>
+            <div className="quick-modal__collapse-inner">
+              <div className="quick-modal__panel">
+                {isFutureDate ? (
+                  <p className="quick-modal__readonly-hint">
+                    Future dates are read-only for buy entries.
+                  </p>
+                ) : (
+                  <>
+                    <div className="desc-field">
+                      <input
+                        className="desc-field__input"
+                        placeholder="Description (optional)"
+                        value={buyDesc}
+                        onChange={(e) => setBuyDesc(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="quick-modal__amount-field">
+                      <div className="quick-modal__row">
+                        <input
+                          className={`sheet__input${buyAmountError ? ' sheet__input--error' : ''}`}
+                          inputMode="decimal"
+                          placeholder="Amount"
+                          value={buyAmount}
+                          onChange={(e) => {
+                            const val = e.target.value
+                            setBuyAmount(val)
+                            if (buyAmountError) {
+                              const n = parseFloat(val.replace(',', '.'))
+                              if (!Number.isNaN(n) && n > 0) {
+                                setBuyAmountError(false)
+                              }
+                            }
+                          }}
+                        />
+                        <button type="button" className="btn btn--primary" onClick={addBuy}>
+                          Add
+                        </button>
+                      </div>
+                      {buyAmountError && (
+                        <div className="qm-amount-error" role="alert">
+                          Amount is required
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )}
+                <ul className="quick-modal__list">
+                  {buysForDate.length === 0 ? (
+                    <li className="quick-modal__empty">No buy entries on this date</li>
+                  ) : (
+                    buysForDate
+                      .slice()
+                      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                      .map((e) => (
+                        <li
+                          key={e.id}
+                          className={`quick-modal__item quick-modal__item--col ${getBackdatedClass(e, dateIso)}`.trim()}
+                        >
+                          {editingBuyId === e.id ? (
+                            <div className="qm-edit__container">
+                              <input
+                                className="sheet__input"
+                                value={editDesc}
+                                onChange={(ev) => setEditDesc(ev.target.value)}
+                                placeholder="Description (optional)"
+                              />
+                              <div className="quick-modal__amount-field">
+                                <div className="quick-modal__row">
+                                  <input
+                                    className={`sheet__input${editAmountError ? ' sheet__input--error' : ''}`}
+                                    value={editAmount}
+                                    onChange={(ev) => {
+                                      const val = ev.target.value
+                                      setEditAmount(val)
+                                      if (editAmountError) {
+                                        const n = parseFloat(val.replace(',', '.'))
+                                        if (!Number.isNaN(n) && n > 0) {
+                                          setEditAmountError(false)
+                                        }
+                                      }
+                                    }}
+                                    inputMode="decimal"
+                                    placeholder="Amount"
+                                  />
+                                  <button type="button" className="btn btn--primary" onClick={saveBuyEdit}>
+                                    Save
+                                  </button>
+                                  <button type="button" className="btn btn--ghost" onClick={cancelEdit}>
+                                    Cancel
+                                  </button>
+                                </div>
+                                {editAmountError && (
+                                  <div className="qm-amount-error" role="alert">
+                                    Amount is required
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <div className="quick-modal__item-top">
+                                <span className="qm-item__desc">
+                                  {e.description || <span style={{ color: '#64748b' }}>—</span>}
+                                </span>
+                                <div className="entry-amount-col qm-item__amount-col">
+                                  <span className="qm-item__amount">{formatMoney(e.amount)}</span>
+                                </div>
+                              </div>
+                              <div className="quick-modal__item-meta">
+                                <div className="qm-item__meta-time">
+                                  <span style={{ fontWeight: 600 }}>
+                                    {(() => {
+                                      const rawTs = formatDateTime(e.updatedAt || e.createdAt, timeFormat)
+                                      const parts = splitFormattedDateTime(rawTs)
+                                      if (!parts) return <>On {rawTs}</>
+                                      return (
+                                        <>
+                                          {'On '}
+                                          {parts.dayPrefix}
+                                          {', '}
+                                          <span
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              padding: '1px 5px',
+                                              borderRadius: '9999px',
+                                              background: 'rgba(34, 197, 94, 0.18)',
+                                              border: '1px solid rgba(34, 197, 94, 0.45)',
+                                              color: '#4ade80',
+                                              fontSize: '0.68rem',
+                                              fontWeight: 600,
+                                              letterSpacing: '0.01em',
+                                              lineHeight: '1.2',
+                                            }}
+                                          >
+                                            {parts.monthDay}
+                                          </span>
+                                          {', '}
+                                          {parts.rest}
+                                        </>
+                                      )
+                                    })()}
+                                  </span>
+                                  {e.editHistory && e.editHistory.length > 0 ? (
+                                    <span className="qm-item__edited-tag">(edited)</span>
+                                  ) : null}
+                                </div>
+                                <div className="quick-modal__item-actions">
+                                  <button type="button" className="btn btn--ghost" onClick={() => startEditBuy(e)}>
+                                    Edit
+                                  </button>
+                                  <button type="button" className="btn btn--danger" onClick={() => handleDeleteBuy(e)}>
                                     Delete
                                   </button>
                                 </div>

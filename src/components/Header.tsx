@@ -8,10 +8,13 @@ type Props = {
   isToday: boolean
   todayShortDate?: string
   daySales: number
+  dayBuy: number
   dayExpense: number
   monthlySales: number
+  monthlyBuy: number
   monthlyExpense: number
   yearlySales: number
+  yearlyBuy: number
   yearlyExpense: number
   currentYear?: number
   viewYear: number
@@ -31,10 +34,13 @@ export function Header({
   isToday,
   todayShortDate,
   daySales,
+  dayBuy,
   dayExpense,
   monthlySales,
+  monthlyBuy,
   monthlyExpense,
   yearlySales,
+  yearlyBuy,
   yearlyExpense,
   currentYear,
   viewYear,
@@ -54,7 +60,7 @@ export function Header({
   const monthLabel = `${MONTH_NAMES[viewMonth]} ${viewYear}`
   const displayYear = currentYear ?? now.getFullYear()
 
-  const dayProfit = daySales - dayExpense
+  const dayProfit = daySales - dayBuy - dayExpense
   const dayProfitPositive = dayProfit > 0
   const dayProfitNegative = dayProfit < 0
   const dayProfitSign = dayProfitPositive ? '+' : ''
@@ -64,7 +70,7 @@ export function Header({
       ? 'app-header__value--profit-negative'
       : 'app-header__value--profit-zero'
 
-  const monthlyProfit = monthlySales - monthlyExpense
+  const monthlyProfit = monthlySales - monthlyBuy - monthlyExpense
   const monthlyProfitPositive = monthlyProfit > 0
   const monthlyProfitNegative = monthlyProfit < 0
   const monthlyProfitSign = monthlyProfitPositive ? '+' : ''
@@ -74,7 +80,7 @@ export function Header({
       ? 'app-header__value--profit-negative'
       : 'app-header__value--profit-zero'
 
-  const yearlyProfit = yearlySales - yearlyExpense
+  const yearlyProfit = yearlySales - yearlyBuy - yearlyExpense
   const yearlyProfitPositive = yearlyProfit > 0
   const yearlyProfitNegative = yearlyProfit < 0
   const yearlyProfitSign = yearlyProfitPositive ? '+' : ''
@@ -129,6 +135,13 @@ export function Header({
             </span>
           </div>
 
+          <div className="app-header__stat-row" title="Today's Buy">
+            <span className="app-header__label app-header__label--buy">Buy</span>
+            <span className="app-header__value app-header__value--buy">
+              {formatMoney(dayBuy)}
+            </span>
+          </div>
+
           <div className="app-header__stat-row" title="Today's Expense">
             <span className="app-header__label">Expense</span>
             <span className="app-header__value">
@@ -163,6 +176,13 @@ export function Header({
             </span>
           </div>
 
+          <div className="app-header__stat-row" title="Monthly Buy">
+            <span className="app-header__label app-header__label--buy">Buy</span>
+            <span className="app-header__value app-header__value--buy">
+              {formatMoney(monthlyBuy)}
+            </span>
+          </div>
+
           <div className="app-header__stat-row" title="Monthly Expense">
             <span className="app-header__label">Expense</span>
             <span className="app-header__value">
@@ -194,6 +214,13 @@ export function Header({
             <span className="app-header__label">Sales</span>
             <span className="app-header__value">
               {formatMoney(yearlySales)}
+            </span>
+          </div>
+
+          <div className="app-header__stat-row" title="Yearly Buy">
+            <span className="app-header__label app-header__label--buy">Buy</span>
+            <span className="app-header__value app-header__value--buy">
+              {formatMoney(yearlyBuy)}
             </span>
           </div>
 

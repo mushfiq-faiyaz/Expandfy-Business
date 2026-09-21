@@ -16,6 +16,17 @@ export type Expense = {
   editHistory?: EditHistoryItem[]
 }
 
+export type BuyEntry = {
+  id: string
+  date: string
+  targetDate?: string
+  description: string
+  amount: number
+  createdAt: string
+  updatedAt?: string
+  editHistory?: EditHistoryItem[]
+}
+
 export type CalendarEntry = {
   id?: string
   targetDate?: string
@@ -57,7 +68,7 @@ export type EntrySnapshot = {
 export type ActivityLogItem = {
   id: string
   type: 'added' | 'edited' | 'deleted'
-  side: 'expense' | 'income'
+  side: 'expense' | 'income' | 'buy'
   entryId: string
   timestamp: string
   entrySnapshotBefore: EntrySnapshot

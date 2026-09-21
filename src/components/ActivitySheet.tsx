@@ -14,7 +14,7 @@ type Props = {
   formatMoney: (n: number) => string
   timeFormat: '12h' | '24h'
   onClose: () => void
-  onOpenEditHistory: (entry: Expense | IncomeEntry, side: 'expense' | 'income') => void
+  onOpenEditHistory: (entry: Expense | IncomeEntry, side: 'expense' | 'income' | 'buy') => void
 }
 
 function getEditSummary(

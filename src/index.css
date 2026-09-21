@@ -389,6 +389,9 @@ body {
   font-weight: 600;
   color: rgba(226, 232, 240, 0.95);
 }
+.app-header__label--buy {
+  color: #f59e0b;
+}
 
 /* Value text — larger, bold */
 .app-header__value {
@@ -409,6 +412,7 @@ body {
 .app-header__value--balance-negative { color: #f87171; font-weight: 700; }
 .app-header__value--spent   { color: #ffffff; }
 .app-header__value--income  { color: #4ade80; }
+.app-header__value--buy     { color: #fbbf24; }
 .app-header__value--profit {
   font-size: 0.88rem;
   font-weight: 800;
@@ -2147,6 +2151,13 @@ body {
   color: #60a5fa;
 }
 
+/* Buy — amber/orange tint */
+.qm-row__badge--buy {
+  background: rgba(251, 191, 36, 0.13);
+  border-color: rgba(251, 191, 36, 0.22);
+  color: #fbbf24;
+}
+
 /* Label + sub-label column */
 .qm-row__body {
   flex: 1;
@@ -2203,6 +2214,12 @@ body {
   color: #4ade80;
   background: rgba(74, 222, 128, 0.10);
   border-color: rgba(74, 222, 128, 0.18);
+}
+
+.qm-row__value--buy {
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.10);
+  border-color: rgba(251, 191, 36, 0.18);
 }
 
 .qm-row__value--currency {
@@ -5758,6 +5775,12 @@ body {
   color: #2563eb;
 }
 
+[data-theme="light"] .qm-row__badge--buy {
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.22);
+  color: #d97706;
+}
+
 [data-theme="light"] .qm-row__label {
   color: #0f172a;
   font-weight: 600;
@@ -5790,6 +5813,12 @@ body {
   color: #2563eb;
   background: rgba(59, 130, 246, 0.09);
   border-color: rgba(59, 130, 246, 0.22);
+}
+
+[data-theme="light"] .qm-row__value--buy {
+  color: #d97706;
+  background: rgba(217, 119, 6, 0.09);
+  border-color: rgba(217, 119, 6, 0.22);
 }
 
 [data-theme="light"] .quick-modal__chev {

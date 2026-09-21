@@ -29,10 +29,12 @@ import {
   loadCustomExpenseCategories,
   loadCustomIncomeCategories,
   loadExpenses,
+  loadBuys,
   loadIncome,
   saveCustomExpenseCategories,
   saveCustomIncomeCategories,
   saveExpenses,
+  saveBuys,
   saveIncome,
   loadExpenseCategoryOrder,
   saveExpenseCategoryOrder,
@@ -56,7 +58,7 @@ import {
 import { daysInMonth, monthYearLabel, parseISODate, toISODate } from './dateUtils'
 import { getNetworkNow, useNetworkTime } from './networkTime'
 import { useNotification } from './hooks/useNotification'
-import type { ActivityLogItem, CalendarEntry, CustomCategory, EditHistoryItem, EntrySnapshot, Expense, IncomeEntry, ThemeMode } from './types'
+import type { ActivityLogItem, BuyEntry, CalendarEntry, CustomCategory, EditHistoryItem, EntrySnapshot, Expense, IncomeEntry, ThemeMode } from './types'
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>
@@ -113,6 +115,31 @@ function buildSpendByDate(expenses: Expense[], y: number, m: number): Record<str
   return map
 }
 
+function sumBuysForMonth(buys: BuyEntry[], y: number, m: number): number {
+  return buys.reduce((sum, e) => {
+    const rawDate = e.targetDate || e.date
+    if (!rawDate) return sum
+    const d = new Date(rawDate.includes('T') ? rawDate : rawDate + 'T12:00:00')
+    return d.getFullYear() === y && d.getMonth() === m ? sum + e.amount : sum
+  }, 0)
+}
+
+function sumBuysForYear(buys: BuyEntry[], y: number): number {
+  return buys.reduce((sum, e) => {
+    const rawDate = e.targetDate || e.date
+    if (!rawDate) return sum
+    const d = new Date(rawDate.includes('T') ? rawDate : rawDate + 'T12:00:00')
+    return d.getFullYear() === y ? sum + e.amount : sum
+  }, 0)
+}
+
+function sumBuysForDate(buys: BuyEntry[], dateIso: string): number {
+  return buys.reduce((sum, e) => {
+    const expDate = e.targetDate || e.date || ''
+    return expDate === dateIso ? sum + e.amount : sum
+  }, 0)
+}
+
 function nextAutoLabel(
   existingDescriptions: string[],
   base: 'Expense' | 'Income',
@@ -136,6 +163,7 @@ export default function App() {
   const TIME_FORMAT_KEY = 'expendfy_time_format'
   const CURRENCY_OPTIONS = ['TRY', 'USD', 'EUR', 'GBP', 'INR', 'JPY', 'AED', 'BDT'] as const
   const [expenses, setExpenses] = useState<Expense[]>(() => loadExpenses())
+  const [buys, setBuys] = useState<BuyEntry[]>(() => loadBuys())
   const [incomeEntries, setIncomeEntries] = useState<IncomeEntry[]>(() => loadIncome())
   const [customExpenseCategories, setCustomExpenseCategories] = useState<CustomCategory[]>(() =>
     loadCustomExpenseCategories(),
@@ -306,7 +334,7 @@ export default function App() {
   const [monthActivityOpen, setMonthActivityOpen] = useState(false)
   const [monthViewingHistory, setMonthViewingHistory] = useState<{
     entry: Expense | IncomeEntry
-    side: 'expense' | 'income'
+    side: 'expense' | 'income' | 'buy'
   } | null>(null)
   const [expenseSheetOpen, setExpenseSheetOpen] = useState(false)
   const [incomeSheetOpen, setIncomeSheetOpen] = useState(false)
@@ -370,6 +398,10 @@ export default function App() {
     () => sumExpensesForMonth(expenses, viewYear, viewMonth),
     [expenses, viewYear, viewMonth],
   )
+  const monthlyBuy = useMemo(
+    () => sumBuysForMonth(buys, viewYear, viewMonth),
+    [buys, viewYear, viewMonth],
+  )
   const monthlyIncome = useMemo(
     () => sumIncomeForMonth(incomeEntries, viewYear, viewMonth),
     [incomeEntries, viewYear, viewMonth],
@@ -379,6 +411,10 @@ export default function App() {
   const yearlySpent = useMemo(
     () => sumExpensesForYear(expenses, currentYear),
     [expenses, currentYear],
+  )
+  const yearlyBuy = useMemo(
+    () => sumBuysForYear(buys, currentYear),
+    [buys, currentYear],
   )
   const yearlyIncome = useMemo(
     () => sumIncomeForYear(incomeEntries, currentYear),
@@ -409,6 +445,14 @@ export default function App() {
         return expDate === selectedDate ? sum + e.amount : sum
       }, 0),
     [expenses, selectedDate],
+  )
+  const selectedDateBuy = useMemo(
+    () => sumBuysForDate(buys, selectedDate),
+    [buys, selectedDate],
+  )
+  const buysForSelectedDate = useMemo(
+    () => buys.filter((e) => (e.targetDate || e.date) === selectedDate),
+    [buys, selectedDate],
   )
   const todayShortDate = useMemo(() => {
     const d = parseISODate(selectedDate)
@@ -760,6 +804,152 @@ export default function App() {
     })
   }
 
+  function addBuy(description: string, amount: number): void {
+    const normalized = description.trim()
+    const nowIso = getNetworkNow().toISOString()
+    const finalDesc = normalized || nextAutoLabel(buys.map((e) => e.description), 'Expense')
+    const newEntryId = newId()
+
+    const snapshot: EntrySnapshot = {
+      id: newEntryId,
+      amount,
+      description: finalDesc,
+      rawDescription: finalDesc,
+      createdAt: nowIso,
+      date: selectedDate,
+    }
+
+    const logItem: ActivityLogItem = {
+      id: newId(),
+      type: 'added',
+      side: 'buy',
+      entryId: newEntryId,
+      timestamp: nowIso,
+      entrySnapshotBefore: snapshot,
+    }
+
+    setActivityLog((prev) => {
+      const next = [logItem, ...prev]
+      saveActivityLog(next)
+      return next
+    })
+
+    setBuys((prev) => {
+      const row: BuyEntry = {
+        id: newEntryId,
+        date: selectedDate,
+        description: finalDesc,
+        amount,
+        createdAt: nowIso,
+      }
+      const next = [...prev, row]
+      saveBuys(next)
+      return next
+    })
+  }
+
+  function updateBuy(id: string, description: string, amount: number): void {
+    const normalized = description.trim()
+    const nowIso = getNetworkNow().toISOString()
+
+    const item = buys.find((e) => e.id === id)
+    if (item) {
+      const historyItem: EditHistoryItem = {
+        amount: item.amount,
+        description: item.description,
+        editedAt: nowIso,
+      }
+      const existingHistory = item.editHistory || []
+      const newHistory = [...existingHistory, historyItem]
+
+      const snapshotBefore: EntrySnapshot = {
+        id: item.id,
+        amount: item.amount,
+        description: item.description,
+        rawDescription: item.description,
+        createdAt: item.createdAt,
+        date: item.date,
+      }
+      const snapshotAfter: EntrySnapshot = {
+        id: item.id,
+        amount,
+        description: normalized || item.description,
+        rawDescription: normalized || item.description,
+        createdAt: item.createdAt,
+        date: item.date,
+      }
+      const logItem: ActivityLogItem = {
+        id: newId(),
+        type: 'edited',
+        side: 'buy',
+        entryId: id,
+        timestamp: nowIso,
+        entrySnapshotBefore: snapshotBefore,
+        entrySnapshotAfter: snapshotAfter,
+        editHistory: newHistory,
+      }
+      setActivityLog((prev) => {
+        const next = [logItem, ...prev]
+        saveActivityLog(next)
+        return next
+      })
+    }
+
+    setBuys((prev) => {
+      const next = prev.map((e) => {
+        if (e.id !== id) return e
+        const historyItem: EditHistoryItem = {
+          amount: e.amount,
+          description: e.description,
+          editedAt: nowIso,
+        }
+        const existingHistory = e.editHistory || []
+        return {
+          ...e,
+          description: normalized || e.description,
+          amount,
+          updatedAt: nowIso,
+          editHistory: [...existingHistory, historyItem],
+        }
+      })
+      saveBuys(next)
+      return next
+    })
+  }
+
+  function deleteBuy(id: string): void {
+    const item = buys.find((e) => e.id === id)
+    if (item) {
+      const nowIso = getNetworkNow().toISOString()
+      const snapshot: EntrySnapshot = {
+        id: item.id,
+        amount: item.amount,
+        description: item.description,
+        rawDescription: item.description,
+        createdAt: item.createdAt,
+        date: item.date,
+      }
+      const logItem: ActivityLogItem = {
+        id: newId(),
+        type: 'deleted',
+        side: 'buy',
+        entryId: id,
+        timestamp: nowIso,
+        entrySnapshotBefore: snapshot,
+      }
+      setActivityLog((prev) => {
+        const next = [logItem, ...prev]
+        saveActivityLog(next)
+        return next
+      })
+    }
+    setBuys((prev) => {
+      const next = prev.filter((e) => e.id !== id)
+      saveBuys(next)
+      return next
+    })
+  }
+
   function addIncome(description: string, amount: number): void {
     const normalized = description.trim()
     const nowIso = getNetworkNow().toISOString()
@@ -1054,10 +1244,13 @@ export default function App() {
           isToday={selectedDate === todayIso}
           todayShortDate={todayShortDate}
           daySales={selectedDateSales}
+          dayBuy={selectedDateBuy}
           dayExpense={selectedDateCost}
           monthlySales={monthlyIncome}
+          monthlyBuy={monthlyBuy}
           monthlyExpense={monthlySpent}
           yearlySales={yearlyIncome}
+          yearlyBuy={yearlyBuy}
           yearlyExpense={yearlySpent}
           currentYear={currentYear}
           viewYear={viewYear}
@@ -1217,6 +1410,7 @@ export default function App() {
         currency={currency}
         currencyOptions={CURRENCY_OPTIONS}
         expensesForDate={expensesForSelectedDate}
+        buysForDate={buysForSelectedDate}
         incomeForMonth={incomeForCurrentMonth}
         activityLog={activityLog}
         customExpenseCategories={customExpenseCategories}
@@ -1231,6 +1425,9 @@ export default function App() {
         onAddExpense={addExpense}
         onUpdateExpense={updateExpense}
         onDeleteExpense={deleteExpense}
+        onAddBuy={addBuy}
+        onUpdateBuy={updateBuy}
+        onDeleteBuy={deleteBuy}
         onAddIncome={addIncome}
         onUpdateIncome={updateIncome}
         onDeleteIncome={deleteIncome}

@@ -5,7 +5,7 @@ import type { Category } from '../categories'
 
 type Props = {
   entry: Expense | IncomeEntry
-  side: 'expense' | 'income'
+  side: 'expense' | 'income' | 'buy'
   categories: Category[]
   formatMoney: (n: number) => string
   timeFormat: '12h' | '24h'
