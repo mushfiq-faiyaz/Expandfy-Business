@@ -2203,6 +2203,13 @@ body {
   color: #fb7185;
 }
 
+/* Sales — mint green tint */
+.qm-row__badge--sales {
+  background: rgba(116, 198, 157, 0.15);
+  border-color: rgba(116, 198, 157, 0.22);
+  color: #74c69d;
+}
+
 /* Income — emerald/green tint */
 .qm-row__badge--income {
   background: rgba(74, 222, 128, 0.13);
@@ -2274,6 +2281,12 @@ body {
   color: #fb7185;
   background: rgba(251, 113, 133, 0.10);
   border-color: rgba(251, 113, 133, 0.18);
+}
+
+.qm-row__value--sales {
+  color: #74c69d;
+  background: rgba(116, 198, 157, 0.10);
+  border-color: rgba(116, 198, 157, 0.18);
 }
 
 .qm-row__value--income {
@@ -5887,6 +5900,12 @@ body {
   color: #dc2626;
 }
 
+[data-theme="light"] .qm-row__badge--sales {
+  background: rgba(5, 150, 105, 0.10);
+  border-color: rgba(5, 150, 105, 0.22);
+  color: #059669;
+}
+
 [data-theme="light"] .qm-row__badge--income {
   background: rgba(34, 197, 94, 0.10);
   border-color: rgba(34, 197, 94, 0.22);
@@ -5925,6 +5944,12 @@ body {
   color: #dc2626;
   background: rgba(239, 68, 68, 0.09);
   border-color: rgba(239, 68, 68, 0.22);
+}
+
+[data-theme="light"] .qm-row__value--sales {
+  color: #059669;
+  background: rgba(5, 150, 105, 0.09);
+  border-color: rgba(5, 150, 105, 0.22);
 }
 
 [data-theme="light"] .qm-row__value--income {

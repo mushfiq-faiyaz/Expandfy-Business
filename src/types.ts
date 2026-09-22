@@ -40,6 +40,8 @@ export type CalendarEntry = {
 
 export type IncomeEntry = {
   id: string
+  date?: string
+  targetDate?: string
   amount: number
   description: string
   createdAt: string

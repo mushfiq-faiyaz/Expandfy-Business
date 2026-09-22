@@ -126,7 +126,7 @@ function sumBuysForYear(buys: BuyEntry[], y: number): number {
 
 function nextAutoLabel(
   existingDescriptions: string[],
-  base: 'Expense' | 'Income',
+  base: 'Expense' | 'Income' | 'Sales' | 'Buy',
 ): string {
   const matcher = new RegExp(`^${base}\\s+(\\d+)$`, 'i')
   let max = 0
@@ -497,6 +497,19 @@ export default function App() {
     })
     return (n: number): string => formatter.format(n)
   }, [currency])
+  const salesForSelectedDate = useMemo(
+    () =>
+      incomeEntries
+        .filter((e) => {
+          const incDate =
+            (e as unknown as { targetDate?: string; date?: string }).targetDate ||
+            (e as unknown as { targetDate?: string; date?: string }).date ||
+            (e.createdAt ? toISODate(new Date(e.createdAt)) : '')
+          return incDate === selectedDate
+        })
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+    [incomeEntries, selectedDate],
+  )
   const expensesForSelectedDate = useMemo(
     () => expenses.filter((e) => e.date === selectedDate),
     [expenses, selectedDate],
@@ -954,7 +967,7 @@ export default function App() {
       ...INCOME_CATEGORIES,
       ...customIncomeCategories.map(customCategoryToCategory),
     ]
-    const finalDesc = normalized || nextAutoLabel(incomeEntries.map((e) => e.description), 'Income')
+    const finalDesc = normalized || nextAutoLabel(incomeEntries.map((e) => e.description), 'Sales')
     const parsed = parseEntryCategory(finalDesc, allIncomeCats)
     const newEntryId = newId()
 
@@ -965,6 +978,7 @@ export default function App() {
       description: parsed.note || (parsed.category ? '' : finalDesc),
       rawDescription: finalDesc,
       createdAt: nowIso,
+      date: selectedDate,
     }
 
     const logItem: ActivityLogItem = {
@@ -985,6 +999,7 @@ export default function App() {
     setIncomeEntries((prev) => {
       const row: IncomeEntry = {
         id: newEntryId,
+        date: selectedDate,
         amount,
         description: finalDesc,
         createdAt: nowIso,
@@ -1024,6 +1039,7 @@ export default function App() {
         description: parsedBefore.note || (parsedBefore.category ? '' : item.description),
         rawDescription: item.description,
         createdAt: item.createdAt,
+        date: item.date,
       }
       const snapshotAfter: EntrySnapshot = {
         id: item.id,
@@ -1032,6 +1048,7 @@ export default function App() {
         description: parsedAfter.note || (parsedAfter.category ? '' : finalDesc),
         rawDescription: finalDesc,
         createdAt: item.createdAt,
+        date: item.date,
       }
       const logItem: ActivityLogItem = {
         id: newId(),
@@ -1090,6 +1107,7 @@ export default function App() {
         description: parsed.note || (parsed.category ? '' : item.description),
         rawDescription: item.description,
         createdAt: item.createdAt,
+        date: item.date,
       }
       const logItem: ActivityLogItem = {
         id: newId(),
@@ -1406,6 +1424,7 @@ export default function App() {
         dateIso={selectedDate}
         currency={currency}
         currencyOptions={CURRENCY_OPTIONS}
+        salesForDate={salesForSelectedDate}
         expensesForDate={expensesForSelectedDate}
         buysForDate={buysForSelectedDate}
         incomeForMonth={incomeForCurrentMonth}
@@ -1419,6 +1438,9 @@ export default function App() {
         formatMoney={formatMoney}
         timeFormat={timeFormat}
         onClose={() => setQuickEntryOpen(false)}
+        onAddSale={addIncome}
+        onUpdateSale={updateIncome}
+        onDeleteSale={deleteIncome}
         onAddExpense={addExpense}
         onUpdateExpense={updateExpense}
         onDeleteExpense={deleteExpense}
