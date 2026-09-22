@@ -69,6 +69,11 @@ export function Header({
     : dayProfitNegative
       ? 'app-header__value--profit-negative'
       : 'app-header__value--profit-zero'
+  const dayProfitLabelClass = dayProfitPositive
+    ? 'app-header__label--profit-positive'
+    : dayProfitNegative
+      ? 'app-header__label--profit-negative'
+      : 'app-header__label--profit-zero'
 
   const monthlyProfit = monthlySales - monthlyBuy - monthlyExpense
   const monthlyProfitPositive = monthlyProfit > 0
@@ -79,6 +84,11 @@ export function Header({
     : monthlyProfitNegative
       ? 'app-header__value--profit-negative'
       : 'app-header__value--profit-zero'
+  const monthlyProfitLabelClass = monthlyProfitPositive
+    ? 'app-header__label--profit-positive'
+    : monthlyProfitNegative
+      ? 'app-header__label--profit-negative'
+      : 'app-header__label--profit-zero'
 
   const yearlyProfit = yearlySales - yearlyBuy - yearlyExpense
   const yearlyProfitPositive = yearlyProfit > 0
@@ -89,6 +99,11 @@ export function Header({
     : yearlyProfitNegative
       ? 'app-header__value--profit-negative'
       : 'app-header__value--profit-zero'
+  const yearlyProfitLabelClass = yearlyProfitPositive
+    ? 'app-header__label--profit-positive'
+    : yearlyProfitNegative
+      ? 'app-header__label--profit-negative'
+      : 'app-header__label--profit-zero'
 
   return (
     <header className="app-header">
@@ -129,8 +144,8 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Today's Sales">
-            <span className="app-header__label">Sales</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--sales">Sales</span>
+            <span className="app-header__value app-header__value--sales">
               {formatMoney(daySales)}
             </span>
           </div>
@@ -143,14 +158,14 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Today's Expense">
-            <span className="app-header__label">Expense</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--expense">Expense</span>
+            <span className="app-header__value app-header__value--expense">
               {formatMoney(dayExpense)}
             </span>
           </div>
 
           <div className="app-header__stat-row app-header__stat-row--profit" title="Today's Profit">
-            <span className="app-header__label app-header__label--profit">Profit</span>
+            <span className={`app-header__label app-header__label--profit ${dayProfitLabelClass}`}>Profit</span>
             <span className={`app-header__value app-header__value--profit ${dayProfitClass}`}>
               {dayProfitSign}{formatMoney(dayProfit)}
             </span>
@@ -170,8 +185,8 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Monthly Sales">
-            <span className="app-header__label">Sales</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--sales">Sales</span>
+            <span className="app-header__value app-header__value--sales">
               {formatMoney(monthlySales)}
             </span>
           </div>
@@ -184,14 +199,14 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Monthly Expense">
-            <span className="app-header__label">Expense</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--expense">Expense</span>
+            <span className="app-header__value app-header__value--expense">
               {formatMoney(monthlyExpense)}
             </span>
           </div>
 
           <div className="app-header__stat-row app-header__stat-row--profit" title="Monthly Profit">
-            <span className="app-header__label app-header__label--profit">Profit</span>
+            <span className={`app-header__label app-header__label--profit ${monthlyProfitLabelClass}`}>Profit</span>
             <span className={`app-header__value app-header__value--profit ${monthlyProfitClass}`}>
               {monthlyProfitSign}{formatMoney(monthlyProfit)}
             </span>
@@ -211,8 +226,8 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Yearly Sales">
-            <span className="app-header__label">Sales</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--sales">Sales</span>
+            <span className="app-header__value app-header__value--sales">
               {formatMoney(yearlySales)}
             </span>
           </div>
@@ -225,14 +240,14 @@ export function Header({
           </div>
 
           <div className="app-header__stat-row" title="Yearly Expense">
-            <span className="app-header__label">Expense</span>
-            <span className="app-header__value">
+            <span className="app-header__label app-header__label--expense">Expense</span>
+            <span className="app-header__value app-header__value--expense">
               {formatMoney(yearlyExpense)}
             </span>
           </div>
 
           <div className="app-header__stat-row app-header__stat-row--profit" title="Yearly Profit">
-            <span className="app-header__label app-header__label--profit">Profit</span>
+            <span className={`app-header__label app-header__label--profit ${yearlyProfitLabelClass}`}>Profit</span>
             <span className={`app-header__value app-header__value--profit ${yearlyProfitClass}`}>
               {yearlyProfitSign}{formatMoney(yearlyProfit)}
             </span>

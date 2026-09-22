@@ -19,9 +19,53 @@
   box-sizing: border-box;
 }
 
+/* ─── macOS-Style Minimal Scrollbar ──────────────────────────────── */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.12) transparent;
+}
+
+*:hover {
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+/* WebKit / Chromium / Safari */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.12);
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(148, 163, 184, 0.35);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(148, 163, 184, 0.55) !important;
+}
+
+::-webkit-scrollbar-thumb:active {
+  background-color: rgba(148, 163, 184, 0.75) !important;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 html,
 body {
   margin: 0;
+  padding: 0;
+  width: 100%;
   min-height: 100%;
   background: #0f172a;
   color: #f8fafc;
@@ -34,7 +78,6 @@ body {
   font-size: 15px;
   line-height: 1.4;
   -webkit-font-smoothing: antialiased;
-  scrollbar-gutter: stable;
 }
 
 #root {
@@ -42,9 +85,9 @@ body {
   height: 100dvh;
   max-height: 100vh;
   max-height: 100dvh;
+  width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  scrollbar-gutter: stable;
 }
 
 @media (min-width: 480px) and (max-width: 767px) {
@@ -60,16 +103,17 @@ body {
     width: 100%;
     height: 100vh;
     box-shadow: none;
+    margin: 0;
   }
 }
 
 .app {
   height: 100%;
   min-height: 0;
+  width: 100%;
   background: #0f172a;
   display: flex;
   flex-direction: column;
-  scrollbar-gutter: stable;
 }
 
 .app-body {
@@ -389,8 +433,23 @@ body {
   font-weight: 600;
   color: rgba(226, 232, 240, 0.95);
 }
+.app-header__label--profit-positive {
+  color: #4ade80 !important;
+}
+.app-header__label--profit-negative {
+  color: #f87171 !important;
+}
+.app-header__label--profit-zero {
+  color: #94a3b8;
+}
+.app-header__label--sales {
+  color: #74c69d;
+}
 .app-header__label--buy {
-  color: #f59e0b;
+  color: #fbbf24;
+}
+.app-header__label--expense {
+  color: #e08d9b;
 }
 
 /* Value text — larger, bold */
@@ -412,7 +471,9 @@ body {
 .app-header__value--balance-negative { color: #f87171; font-weight: 700; }
 .app-header__value--spent   { color: #ffffff; }
 .app-header__value--income  { color: #4ade80; }
+.app-header__value--sales   { color: #74c69d; }
 .app-header__value--buy     { color: #fbbf24; }
+.app-header__value--expense { color: #e08d9b; }
 .app-header__value--profit {
   font-size: 0.88rem;
   font-weight: 800;
@@ -4030,8 +4091,6 @@ body {
   flex-direction: column;
   gap: 16px;
   padding-bottom: 8px;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(148, 163, 184, 0.2) transparent;
 }
 
 .custom-cat-preview__badge {
@@ -5043,6 +5102,30 @@ body {
   color: #0f172a;
 }
 
+[data-theme="light"] * {
+  scrollbar-color: rgba(100, 116, 139, 0.15) transparent;
+}
+
+[data-theme="light"] *:hover {
+  scrollbar-color: rgba(100, 116, 139, 0.35) transparent;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.15);
+}
+
+[data-theme="light"] :hover::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 116, 139, 0.35);
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 116, 139, 0.55) !important;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:active {
+  background-color: rgba(100, 116, 139, 0.75) !important;
+}
+
 [data-theme="light"] #root {
   box-shadow: 0 0 0 1px rgba(148, 163, 184, 0.20), 0 12px 48px -6px rgba(15, 23, 42, 0.10);
 }
@@ -5154,6 +5237,18 @@ body {
   color: #16a34a;
 }
 
+[data-theme="light"] .app-header__value--sales {
+  color: #059669;
+}
+
+[data-theme="light"] .app-header__value--buy {
+  color: #d97706;
+}
+
+[data-theme="light"] .app-header__value--expense {
+  color: #b94a62;
+}
+
 [data-theme="light"] .app-header__value--balance {
   color: #1d4ed8;
 }
@@ -5163,8 +5258,32 @@ body {
   color: #dc2626;
 }
 
+[data-theme="light"] .app-header__label--sales {
+  color: #059669;
+}
+
+[data-theme="light"] .app-header__label--buy {
+  color: #d97706;
+}
+
+[data-theme="light"] .app-header__label--expense {
+  color: #b94a62;
+}
+
 [data-theme="light"] .app-header__label--profit {
   color: #334155;
+}
+
+[data-theme="light"] .app-header__label--profit-positive {
+  color: #16a34a !important;
+}
+
+[data-theme="light"] .app-header__label--profit-negative {
+  color: #dc2626 !important;
+}
+
+[data-theme="light"] .app-header__label--profit-zero {
+  color: #64748b;
 }
 
 [data-theme="light"] .app-header__value--profit-positive {
