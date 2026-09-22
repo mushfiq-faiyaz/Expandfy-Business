@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { Check, Plus, SlidersHorizontal } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import {
   daysInMonth,
   extractDateOnly,
-  formatCompactAmount,
   formatMonthDay,
   isDateMismatch,
   monthYearLabel,
@@ -24,16 +23,12 @@ const GRID_GAP_PX = 2
 const WEEKDAY_GRID_GAP_PX = 2
 const BLOCK_GAP_PX = 4
 
-export type CalendarDisplayMode = 'both' | 'spent' | 'remain'
-
-const CALENDAR_DISPLAY_MODE_KEY = 'expendfy_calendar_display_mode'
-
 type Props = {
   year: number
   monthIndex: number
-  spendByDate: Record<string, number>
-  incomeDates?: Set<string>
-  averageExpense: number
+  salesByDate: Record<string, number>
+  buyByDate: Record<string, number>
+  expenseByDate: Record<string, number>
   selectedDate: string
   statusMessage: string
   formatMoney: (n: number) => string
@@ -55,9 +50,9 @@ type Props = {
 export function Calendar({
   year,
   monthIndex,
-  spendByDate,
-  incomeDates,
-  averageExpense,
+  salesByDate,
+  buyByDate,
+  expenseByDate,
   selectedDate,
   statusMessage,
   formatMoney,
@@ -75,7 +70,6 @@ export function Calendar({
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null)
   const weekdayRowRef = useRef<HTMLDivElement>(null)
-  const menuContainerRef = useRef<HTMLDivElement>(null)
   const lastTapRef = useRef<{ iso: string; ts: number } | null>(null)
   const [cellPx, setCellPx] = useState(48)
   const [isDesktop, setIsDesktop] = useState(() => {
@@ -90,53 +84,6 @@ export function Calendar({
     mql.addEventListener('change', handler)
     return () => mql.removeEventListener('change', handler)
   }, [])
-
-  const [showDisplayMenu, setShowDisplayMenu] = useState(false)
-  const [displayMode, setDisplayMode] = useState<CalendarDisplayMode>(() => {
-    const saved = localStorage.getItem(CALENDAR_DISPLAY_MODE_KEY)
-    if (saved === 'both' || saved === 'spent' || saved === 'remain') {
-      return saved
-    }
-    return 'both'
-  })
-
-  function handleSetDisplayMode(mode: CalendarDisplayMode): void {
-    setDisplayMode(mode)
-    localStorage.setItem(CALENDAR_DISPLAY_MODE_KEY, mode)
-    setShowDisplayMenu(false)
-  }
-
-  useEffect(() => {
-    if (!showDisplayMenu) return
-    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
-      if (menuContainerRef.current && !menuContainerRef.current.contains(e.target as Node)) {
-        setShowDisplayMenu(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    document.addEventListener('touchstart', handleClickOutside)
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-      document.removeEventListener('touchstart', handleClickOutside)
-    }
-  }, [showDisplayMenu])
-
-  const maxMonthSpend = useMemo(
-    () => Math.max(...Object.values(spendByDate), 0),
-    [spendByDate],
-  )
-
-  const highestExpenseIso = useMemo(() => {
-    let max = 0
-    let maxIso: string | null = null
-    for (const [iso, amount] of Object.entries(spendByDate)) {
-      if (amount > max) {
-        max = amount
-        maxIso = iso
-      }
-    }
-    return maxIso
-  }, [spendByDate])
 
   const firstDow = weekdayIndexFirstOfMonth(year, monthIndex)
   const dim = daysInMonth(year, monthIndex)
@@ -255,27 +202,30 @@ export function Calendar({
       }
     }
 
-    // Merge into BadgeDescriptor[] per day
-    const allKeys = new Set([
-      ...Object.keys(backdatedLines),
-      ...Object.keys(editedLines),
-    ])
-    const map: Record<string, BadgeDescriptor[]> = {}
-    for (const key of allKeys) {
-      const descs: BadgeDescriptor[] = []
-      if (backdatedLines[key] && backdatedLines[key].size > 0) {
-        descs.push({ type: 'backdated', lines: [...backdatedLines[key]] })
+    const out: Record<string, BadgeDescriptor[]> = {}
+    const allKeys = new Set([...Object.keys(backdatedLines), ...Object.keys(editedLines)])
+
+    for (const k of allKeys) {
+      const list: BadgeDescriptor[] = []
+      if (editedLines[k] && editedLines[k].size > 0) {
+        list.push({
+          type: 'edited',
+          lines: Array.from(editedLines[k]),
+        })
       }
-      if (editedLines[key] && editedLines[key].size > 0) {
-        descs.push({ type: 'edited', lines: [...editedLines[key]] })
+      if (backdatedLines[k] && backdatedLines[k].size > 0) {
+        list.push({
+          type: 'backdated',
+          lines: Array.from(backdatedLines[k]),
+        })
       }
-      if (descs.length > 0) map[key] = descs
+      out[k] = list
     }
-    return map
+
+    return out
   }, [entries])
 
-  // Build a quick lookup: iso -> group index (for selection highlights)
-  const selectionMap = useMemo<Record<string, number>>(() => {
+  const selectionMap = useMemo(() => {
     const map: Record<string, number> = {}
     for (let i = 0; i < selectionGroups.length; i++) {
       for (const iso of selectionGroups[i].dates) {
@@ -287,7 +237,11 @@ export function Calendar({
 
   const blockWidth = 7 * cellPx + 6 * WEEKDAY_GRID_GAP_PX
 
-  const isEmptyDay = !spendByDate[selectedDate] && selectedDate <= todayDateIso
+  const hasSelectedDateEntries =
+    (salesByDate[selectedDate] ?? 0) > 0 ||
+    (buyByDate[selectedDate] ?? 0) > 0 ||
+    (expenseByDate[selectedDate] ?? 0) > 0
+  const isEmptyDay = !hasSelectedDateEntries && selectedDate <= todayDateIso
 
   function shiftMonth(delta: number): void {
     const d = new Date(year, monthIndex + delta, 1)
@@ -328,48 +282,8 @@ export function Calendar({
         >
           ‹
         </button>
-        <div className="calendar__header-center" ref={menuContainerRef}>
+        <div className="calendar__header-center">
           <span className="calendar__month">{monthYearLabel(year, monthIndex)}</span>
-          <button
-            type="button"
-            className={`calendar__display-btn ${showDisplayMenu ? 'calendar__display-btn--active' : ''}`}
-            onClick={() => setShowDisplayMenu((prev) => !prev)}
-            aria-label="Calendar display options"
-            title="Display options"
-            aria-expanded={showDisplayMenu}
-          >
-            <SlidersHorizontal size={14} />
-          </button>
-
-          {showDisplayMenu && (
-            <div className="calendar__display-dropdown">
-              <div className="calendar__dropdown-title">Display Options</div>
-              <button
-                type="button"
-                className={`calendar__dropdown-item ${displayMode === 'both' ? 'calendar__dropdown-item--active' : ''}`}
-                onClick={() => handleSetDisplayMode('both')}
-              >
-                <span>Show both</span>
-                {displayMode === 'both' && <Check size={14} className="calendar__dropdown-check" />}
-              </button>
-              <button
-                type="button"
-                className={`calendar__dropdown-item ${displayMode === 'spent' ? 'calendar__dropdown-item--active' : ''}`}
-                onClick={() => handleSetDisplayMode('spent')}
-              >
-                <span>Spent only</span>
-                {displayMode === 'spent' && <Check size={14} className="calendar__dropdown-check" />}
-              </button>
-              <button
-                type="button"
-                className={`calendar__dropdown-item ${displayMode === 'remain' ? 'calendar__dropdown-item--active' : ''}`}
-                onClick={() => handleSetDisplayMode('remain')}
-              >
-                <span>Remain only</span>
-                {displayMode === 'remain' && <Check size={14} className="calendar__dropdown-check" />}
-              </button>
-            </div>
-          )}
         </div>
 
         {/* New Group pill — only shown when select mode is active */}
@@ -418,45 +332,31 @@ export function Calendar({
           style={{
             width: isDesktop ? '100%' : blockWidth,
             gridTemplateColumns: isDesktop ? 'repeat(7, minmax(0, 1fr))' : colTemplate,
-            gridTemplateRows: isDesktop ? `repeat(${neededRows}, minmax(105px, 1fr))` : rowTemplate,
+            gridTemplateRows: isDesktop ? `repeat(${neededRows}, minmax(112px, 1fr))` : rowTemplate,
             gap: isDesktop ? 4 : GRID_GAP_PX,
           }}
         >
           {(isDesktop ? cells.slice(0, desktopTotalSlots) : cells).map((cell, cellIndex) => {
             const { iso, day, inCurrentMonth } = cell
             const isHiddenDesktop = isDesktop && (cellIndex < firstDow || cellIndex >= firstDow + dim)
-            const spent = spendByDate[iso] ?? 0
-            const hasInput = spent > 0
-            const diff = spent - averageExpense // > 0 = over budget, <= 0 = remain under budget
             const isToday = todayIso === iso
             const isSelected = !selectMode && selectedDate === iso
-            const isOver = diff > 0
-            const hasIncome = inCurrentMonth && (incomeDates?.has(iso) ?? false)
-            const isHighestSpend =
-              inCurrentMonth && iso === highestExpenseIso && (spendByDate[iso] ?? 0) > 0
 
-            // Subtle spend intensity from 0 to 1 for tonal background tint
-            const spendIntensity =
-              inCurrentMonth && hasInput && maxMonthSpend > 0
-                ? Math.min(1, Math.max(0.12, spent / maxMonthSpend))
-                : 0
+            const daySales = salesByDate[iso] ?? 0
+            const dayBuy = buyByDate[iso] ?? 0
+            const dayExpense = expenseByDate[iso] ?? 0
+            const dayProfit = daySales - dayBuy - dayExpense
 
-            const spentDisplay = hasInput ? formatCompactAmount(spent, formatMoney) : ''
-            const remainDisplay = hasInput
-              ? isOver
-                ? `-${formatCompactAmount(diff, formatMoney)}`
-                : `+${formatCompactAmount(Math.abs(diff), formatMoney)}`
-              : ''
+            const profitStatus =
+              dayProfit > 0 ? 'positive' : dayProfit < 0 ? 'negative' : 'zero'
+            const profitSign = dayProfit > 0 ? '+' : ''
 
-            const showSpent = hasInput && (displayMode === 'both' || displayMode === 'spent')
-            const showRemain = hasInput && (displayMode === 'both' || displayMode === 'remain')
+            const salesFormatted = formatMoney(daySales)
+            const buyFormatted = formatMoney(dayBuy)
+            const expenseFormatted = formatMoney(dayExpense)
+            const profitFormatted = formatMoney(dayProfit)
 
             const selectionGroupIndex = selectionMap[iso] ?? undefined
-
-            const spentFormatted = formatMoney(spent)
-            const maxFormatted = formatMoney(averageExpense)
-            const remainAmount = averageExpense - spent
-            const remainFormatted = formatMoney(remainAmount)
 
             return (
               <CalendarCell
@@ -464,25 +364,19 @@ export function Calendar({
                 iso={iso}
                 day={day}
                 inCurrentMonth={inCurrentMonth}
-                hasInput={hasInput}
                 isToday={isToday}
                 isSelected={isSelected}
-                isOver={isOver}
-                hasIncome={hasIncome}
-                isHighestSpend={isHighestSpend}
-                spendIntensity={spendIntensity}
-                spentDisplay={spentDisplay}
-                remainDisplay={remainDisplay}
-                showSpent={showSpent}
-                showRemain={showRemain}
                 badges={badgesByDate[iso] ?? []}
                 onTap={handleCellTap}
                 selectionGroupIndex={selectionGroupIndex}
                 isDesktop={isDesktop}
-                spentFormatted={spentFormatted}
-                maxFormatted={maxFormatted}
-                remainFormatted={remainFormatted}
                 isHiddenDesktop={isHiddenDesktop}
+                salesFormatted={salesFormatted}
+                buyFormatted={buyFormatted}
+                expenseFormatted={expenseFormatted}
+                profitFormatted={profitFormatted}
+                profitSign={profitSign}
+                profitStatus={profitStatus}
               />
             )
           })}

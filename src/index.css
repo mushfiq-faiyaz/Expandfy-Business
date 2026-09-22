@@ -1058,48 +1058,53 @@ body {
   margin: 0 auto;
 }
 
-/* Stacked container for day amounts */
-.calendar__cell-amounts {
+/* Stacked container for day business lines */
+.calendar__cell-lines,
+.calendar__desktop-lines {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-end;
+  align-items: flex-start;
   width: 100%;
   gap: 1px;
-  margin-top: auto;
+  margin-top: 2px;
 }
 
-/* Day amount lines */
-.calendar__day-amount {
-  font-size: clamp(8px, 1.7vmin, 10px);
+.calendar__cell-line,
+.calendar__desktop-line {
+  font-size: clamp(7px, 1.6vmin, 9px);
   font-weight: 600;
   line-height: 1.15;
-  text-align: center;
+  text-align: left;
   display: block;
   width: 100%;
-  margin: 0 auto;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: -0.02em;
-  padding: 0 1px;
-  box-sizing: border-box;
+  letter-spacing: -0.01em;
 }
 
-/* Line 1 — Spent amount: muted white/gray */
-.calendar__day-amount--spent {
-  color: rgba(226, 232, 240, 0.80);
-  font-weight: 500;
+.calendar__cell-line--sales {
+  color: #74c69d;
 }
 
-/* Line 2 — Over budget: red */
-.calendar__day-amount--over {
-  color: #ff5c5c;
+.calendar__cell-line--buy {
+  color: #fbbf24;
 }
 
-/* Line 2 — Remain under budget: green */
-.calendar__day-amount--remain {
+.calendar__cell-line--expense {
+  color: #e08d9b;
+}
+
+.calendar__cell-line--profit-positive {
   color: #4ade80;
+}
+
+.calendar__cell-line--profit-negative {
+  color: #f87171;
+}
+
+.calendar__cell-line--profit-zero {
+  color: #94a3b8;
 }
 
 .calendar__footer {
@@ -7317,8 +7322,8 @@ body {
 
   /* ── Calendar adjustments on Desktop ─────────────────────────────── */
   .app-main {
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: max-content;
     display: flex;
     flex-direction: column;
     padding: 16px 28px 24px;
@@ -7331,8 +7336,9 @@ body {
 
   .calendar {
     width: 100%;
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: max-content;
+    height: auto;
     gap: 14px;
     background: rgba(13, 20, 37, 0.70);
     border: 1px solid rgba(255, 255, 255, 0.08);
@@ -7354,8 +7360,9 @@ body {
 
   .calendar__gridHost {
     width: 100%;
-    flex: 1;
-    min-height: 0;
+    flex: 1 0 auto;
+    min-height: max-content;
+    height: auto;
     align-items: stretch;
     justify-content: flex-start;
     gap: 6px;
@@ -7382,8 +7389,9 @@ body {
 
   .calendar__grid--square {
     width: 100% !important;
-    flex: 1;
-    min-height: 520px;
+    flex: 1 0 auto;
+    min-height: max-content;
+    height: auto;
     display: grid !important;
     grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     gap: 4px !important;
@@ -7399,10 +7407,10 @@ body {
   .calendar__cell {
     width: 100%;
     height: 100%;
-    min-height: 105px;
+    min-height: 112px;
     border-radius: 10px !important;
     border: 1px solid rgba(255, 255, 255, 0.09) !important;
-    padding: 10px 12px;
+    padding: 8px 10px;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -7446,24 +7454,6 @@ body {
     background: rgba(30, 48, 80, 0.75) !important;
   }
 
-  /* Intentional color tinting for days with data - preserve visible thin border & rounded corners */
-  .calendar__cell--over:not(.calendar__cell--selected):not(.calendar__cell--today) {
-    background: linear-gradient(rgba(244, 63, 94, 0.14), rgba(244, 63, 94, 0.14)), rgba(22, 32, 54, 0.65) !important;
-    border: 1px solid rgba(244, 63, 94, 0.28) !important;
-  }
-  .calendar__cell--highest-spend:not(.calendar__cell--selected):not(.calendar__cell--today) {
-    background: linear-gradient(rgba(244, 63, 94, 0.20), rgba(244, 63, 94, 0.20)), rgba(22, 32, 54, 0.65) !important;
-    border: 1px solid rgba(244, 63, 94, 0.38) !important;
-  }
-  .calendar__cell--under:not(.calendar__cell--selected):not(.calendar__cell--today) {
-    background: linear-gradient(rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.10)), rgba(22, 32, 54, 0.65) !important;
-    border: 1px solid rgba(34, 197, 94, 0.22) !important;
-  }
-  .calendar__cell--has-income:not(.calendar__cell--has-spend):not(.calendar__cell--selected):not(.calendar__cell--today) {
-    background: linear-gradient(rgba(34, 197, 94, 0.10), rgba(34, 197, 94, 0.10)), rgba(22, 32, 54, 0.65) !important;
-    border: 1px solid rgba(34, 197, 94, 0.22) !important;
-  }
-
   /* Out-of-month cells if any remain visible */
   .calendar__cell--otherMonth {
     opacity: 0.4 !important;
@@ -7486,20 +7476,22 @@ body {
     align-self: flex-start;
   }
 
-  /* Desktop 3-line stacked block */
+  /* Desktop 4-line stacked business block */
+  .calendar__cell-lines,
   .calendar__desktop-lines {
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    margin-top: 10px;
+    gap: 3px;
+    margin-top: 6px;
     width: 100%;
     text-align: left;
   }
 
+  .calendar__cell-line,
   .calendar__desktop-line {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     font-weight: 600;
-    line-height: 1.35;
+    line-height: 1.3;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -7507,37 +7499,44 @@ body {
     text-align: left;
   }
 
-  /* First line: Spent in plain white/neutral */
-  .calendar__desktop-line--spent {
-    color: #e2e8f0;
+  /* 1. Sales: #74c69d */
+  .calendar__cell-line--sales {
+    color: #74c69d;
   }
 
-  /* Second line: Max in green */
-  .calendar__desktop-line--max {
+  /* 2. Buy: #fbbf24 */
+  .calendar__cell-line--buy {
+    color: #fbbf24;
+  }
+
+  /* 3. Expense: #e08d9b */
+  .calendar__cell-line--expense {
+    color: #e08d9b;
+  }
+
+  /* 4. Profit: green if positive, red if negative, neutral slate if zero */
+  .calendar__cell-line--profit-positive {
     color: #4ade80;
   }
 
-  /* Third line: Remain in blue */
-  .calendar__desktop-line--remain {
-    color: #38bdf8;
+  .calendar__cell-line--profit-negative {
+    color: #f87171;
   }
 
-  .calendar__cell-amounts {
-    align-items: flex-end;
-    gap: 2px;
-    margin-top: auto;
-    width: 100%;
-  }
-
-  .calendar__day-amount {
-    font-size: 0.80rem;
-    font-weight: 600;
-    text-align: right;
+  .calendar__cell-line--profit-zero {
+    color: #94a3b8;
   }
 
   .calendar__footer {
     width: 100% !important;
     margin: 12px auto 0;
+    flex-shrink: 0;
+  }
+
+  [data-theme="light"] .calendar {
+    background: rgba(255, 255, 255, 0.75);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.06);
   }
 }
 

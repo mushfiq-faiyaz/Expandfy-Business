@@ -55,7 +55,7 @@ import {
   customCategoryToCategory,
   parseEntryCategory,
 } from './categories'
-import { daysInMonth, monthYearLabel, parseISODate, toISODate } from './dateUtils'
+import { monthYearLabel, parseISODate, toISODate } from './dateUtils'
 import { getNetworkNow, useNetworkTime } from './networkTime'
 import { useNotification } from './hooks/useNotification'
 import type { ActivityLogItem, BuyEntry, CalendarEntry, CustomCategory, EditHistoryItem, EntrySnapshot, Expense, IncomeEntry, ThemeMode } from './types'
@@ -104,16 +104,6 @@ function sumIncomeForYear(entries: IncomeEntry[], y: number): number {
   }, 0)
 }
 
-function buildSpendByDate(expenses: Expense[], y: number, m: number): Record<string, number> {
-  const map: Record<string, number> = {}
-  for (const e of expenses) {
-    const d = new Date(e.date + 'T12:00:00')
-    if (d.getFullYear() === y && d.getMonth() === m) {
-      map[e.date] = (map[e.date] ?? 0) + e.amount
-    }
-  }
-  return map
-}
 
 function sumBuysForMonth(buys: BuyEntry[], y: number, m: number): number {
   return buys.reduce((sum, e) => {
@@ -133,12 +123,6 @@ function sumBuysForYear(buys: BuyEntry[], y: number): number {
   }, 0)
 }
 
-function sumBuysForDate(buys: BuyEntry[], dateIso: string): number {
-  return buys.reduce((sum, e) => {
-    const expDate = e.targetDate || e.date || ''
-    return expDate === dateIso ? sum + e.amount : sum
-  }, 0)
-}
 
 function nextAutoLabel(
   existingDescriptions: string[],
@@ -421,35 +405,54 @@ export default function App() {
     [incomeEntries, currentYear],
   )
 
-  const spendByDate = useMemo(
-    () => buildSpendByDate(expenses, viewYear, viewMonth),
-    [expenses, viewYear, viewMonth],
-  )
-  const averageExpense = useMemo(() => {
-    if (monthlyIncome <= 0) return 0
-    return monthlyIncome / daysInMonth(viewYear, viewMonth)
-  }, [monthlyIncome, viewYear, viewMonth])
-  const selectedDateSales = useMemo(() => {
-    return incomeEntries.reduce((sum, e) => {
+  const salesByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const e of incomeEntries) {
       const incDate =
         (e as unknown as { targetDate?: string; date?: string }).targetDate ||
         (e as unknown as { targetDate?: string; date?: string }).date ||
         (e.createdAt ? toISODate(new Date(e.createdAt)) : '')
-      return incDate === selectedDate ? sum + e.amount : sum
-    }, 0)
-  }, [incomeEntries, selectedDate])
-  const selectedDateCost = useMemo(
-    () =>
-      expenses.reduce((sum, e) => {
-        const expDate = e.targetDate || e.date || ''
-        return expDate === selectedDate ? sum + e.amount : sum
-      }, 0),
-    [expenses, selectedDate],
-  )
-  const selectedDateBuy = useMemo(
-    () => sumBuysForDate(buys, selectedDate),
-    [buys, selectedDate],
-  )
+      if (incDate) {
+        map[incDate] = (map[incDate] ?? 0) + e.amount
+      }
+    }
+    return map
+  }, [incomeEntries])
+
+  const buyByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const b of buys) {
+      const buyDate = b.targetDate || b.date || ''
+      if (buyDate) {
+        map[buyDate] = (map[buyDate] ?? 0) + b.amount
+      }
+    }
+    return map
+  }, [buys])
+
+  const expenseByDate = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const e of expenses) {
+      const expDate = e.targetDate || e.date || ''
+      if (expDate) {
+        map[expDate] = (map[expDate] ?? 0) + e.amount
+      }
+    }
+    return map
+  }, [expenses])
+
+  const selectedDateSales = useMemo(() => {
+    return salesByDate[selectedDate] ?? 0
+  }, [salesByDate, selectedDate])
+
+  const selectedDateCost = useMemo(() => {
+    return expenseByDate[selectedDate] ?? 0
+  }, [expenseByDate, selectedDate])
+
+  const selectedDateBuy = useMemo(() => {
+    return buyByDate[selectedDate] ?? 0
+  }, [buyByDate, selectedDate])
+
   const buysForSelectedDate = useMemo(
     () => buys.filter((e) => (e.targetDate || e.date) === selectedDate),
     [buys, selectedDate],
@@ -508,23 +511,17 @@ export default function App() {
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
     [incomeEntries, viewYear, viewMonth],
   )
-  const incomeDates = useMemo(() => {
-    const set = new Set<string>()
-    for (const entry of incomeEntries) {
-      const d = new Date(entry.createdAt)
-      if (!Number.isNaN(d.getTime())) {
-        set.add(toISODate(d))
-      }
-    }
-    return set
-  }, [incomeEntries])
 
   const allCalendarEntries = useMemo(() => {
-    const list: CalendarEntry[] = [...expenses]
+    const list: CalendarEntry[] = [...expenses, ...buys]
     for (const inc of incomeEntries) {
+      const incDate =
+        (inc as unknown as { targetDate?: string; date?: string }).targetDate ||
+        (inc as unknown as { targetDate?: string; date?: string }).date ||
+        (inc.createdAt ? toISODate(new Date(inc.createdAt)) : '')
       list.push({
         id: inc.id,
-        date: toISODate(new Date(inc.createdAt)),
+        date: incDate,
         createdAt: inc.createdAt,
         updatedAt: inc.updatedAt,
         editHistory: inc.editHistory,
@@ -533,7 +530,7 @@ export default function App() {
       })
     }
     return list
-  }, [expenses, incomeEntries])
+  }, [expenses, buys, incomeEntries])
 
   const monthActivityLog = useMemo(() => {
     return activityLog.filter((item) => {
@@ -1294,9 +1291,9 @@ export default function App() {
           <Calendar
             year={viewYear}
             monthIndex={viewMonth}
-            spendByDate={spendByDate}
-            incomeDates={incomeDates}
-            averageExpense={averageExpense}
+            salesByDate={salesByDate}
+            buyByDate={buyByDate}
+            expenseByDate={expenseByDate}
             selectedDate={selectedDate}
             statusMessage={selectedDateStatus}
             formatMoney={formatMoney}
